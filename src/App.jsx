@@ -4,6 +4,8 @@ import WatchlistManager from './components/WatchlistManager'
 import FilterBar from './components/FilterBar'
 import NewsCard from './components/NewsCard'
 import NewsModal from './components/NewsModal'
+import AuthForm from './components/AuthForm'
+import { supabase } from './supabaseClient'
 
 const STORAGE_KEY = 'stock-news-watchlist'
 
@@ -20,6 +22,19 @@ export default function App() {
   const [watchlist, setWatchlist] = useState(loadWatchlist)
   const [activeFilter, setActiveFilter] = useState(null)
   const [selectedNews, setSelectedNews] = useState(null)
+  const [user, setUser] = useState(null)
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null)
+    })
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(watchlist))
@@ -48,6 +63,8 @@ export default function App() {
 
   const importantCount = mockNews.filter((n) => n.isImportant).length
 
+  if (!user) return <AuthForm />
+
   return (
     <div className="app">
       {/* Header */}
@@ -62,6 +79,12 @@ export default function App() {
             {importantCount > 0 && (
               <span className="header-badge">중요 {importantCount}건</span>
             )}
+            <button
+              onClick={() => supabase.auth.signOut()}
+              style={{ marginLeft: '1rem', padding: '0.3rem 0.8rem', borderRadius: '6px', border: '1px solid #555', background: 'transparent', color: '#aaa', cursor: 'pointer', fontSize: '0.85rem' }}
+            >
+              로그아웃
+            </button>
           </div>
         </div>
       </header>
